@@ -1,78 +1,71 @@
-import RPi.GPIO as GPIO
-import time
 import cv2
-import tensorflow as tf
+import time
+import os
 import numpy as np
+import tensorflow as tf
+import RPi.GPIO as GPIO
 
-# Define the GPIO pins for the ultrasonic sensors
-TRIG_1 = 4
-ECHO_1 = 5
-TRIG_2 = 6
-ECHO_2 = 7
+#initiliaze GPIO
+pinOUt = 22
+GPIO.setup(pinOut, GPIO.OUT)
 
-# Define the GPIO pins for the servo motor and Arduino
-SERVO_PIN = 17
-ARDUINO_PIN = 21
 
-# Initialize the GPIO pins
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(TRIG_1, GPIO.OUT)
-GPIO.setup(ECHO_1, GPIO.IN)
-GPIO.setup(TRIG_2, GPIO.OUT)
-GPIO.setup(ECHO_2, GPIO.IN)
-GPIO.setup(SERVO_PIN, GPIO.OUT)
-GPIO.setup(ARDUINO_PIN, GPIO.OUT)
+#Load bottle classifier
 
-# Load the bottle classifier model
-model = tf.keras.models.load_model('bottle_classifier.h5')
+def output_converter(model_output):
 
-# Create a function to classify the bottle
-def bottle_classifier(image):
-    # Preprocess the image
-    image = cv2.resize(image, dsize=(64, 64))
-    image = image.flatten()
-    image_array = np.array(image)
+    import numpy as np
 
-    # Classify the bottle
-    prediction = model.predict(image_array)
+    output = model_output
 
-    # Convert the prediction to a bottle type
-    def output_converter(model_output):
+    # assume that 'output' is a numpy array of shape (n, 3)
+    output_labels = ['0.5 L', '1 L', '1.5 L', '2 L']
+    predictions = np.argmax(output, axis=1)
+    predicted_labels = [output_labels[p] for p in predictions]
 
-        import numpy as np
+    return predicted_labels
 
-        output = model_output
 
-        # assume that 'output' is a numpy array of shape (n, 2)
-        output_labels = ['0.5 L', '1 L']
-        predictions = np.argmax(output, axis=1)
-        predicted_labels = [output_labels[p] for p in predictions]
-
-        return predicted_labels[0]
-
-    predicted_labels = output_converter(prediction)
-
-    return predicted_labels[0]
-
-# Main loop
 while True:
 
-    # Capture the image
-    capture = cv2.VideoCapture(0)
-    success, image = capture.read()
+  # Create a VideoCapture object
+  cap = cv2.VideoCapture(0)
 
-    # Check the distance to the two objects
-    distance_1 = calculate_distance(measure_echo_pulse(ECHO_1))
-    distance_2 = calculate_distance(measure_echo_pulse(ECHO_2))
+  # Capture an image
+  ret, frame = cap.read()
 
-    # If the distance to the first object is less than 15 cm and the distance to the second object is greater than 15 cm, classify the bottle, send the appropriate signal to the Arduino, and print the bottle type
-  bottle_type = bottle_classifier(image)  
-  if distance_1 < 15 and distance_2 > 15 and bottle_type == '0.5L':
-    GPIO.output(ARDUINO_PIN, GPIO.HIGH)
-    print('The bottle is a 0.5L bottle.')
+  # Check if the capture was successful
+  if ret:
+
+      # Resize the image to 64x64
+      rescaled_image = cv2.resize(frame, dsize=(64, 64), interpolation=cv2.INTER_CUBIC)
+
+      # Convert the image to an array
+      image_array = np.array(rescaled_image, dtype=np.uint8)
+
+      # Display the image
+      cv2.imshow("Image", rescaled_image)
+
+      # Save the image
+      save_directory = "/my/new/directory"
+      cv2.imwrite(os.path.join(save_directory, "image.jpg"), rescaled_image)
+
+      # Wait for a key press
+      cv2.waitKey(0)
+
+  # Release the VideoCapture object
+  cap.release()
+  
+  model = tf.keras.models.load_model("/content/images/self_train.h5")
+  prediction_label = output_converter(model.predict(image_array.reshape(1, 64, 64, 3)))
+  
+  if prediction_label = '0.5 L':
+    label = 0
+    GPIO.output(pinOut, GPIO.LOW)
+    print('Bottle is 0.5 L.')
   else:
-    GPIO.output(ARDUINO_PIN, GPIO.LOW)
-    print('The bottle is a 1L bottle.')
+    label = 1
+    GPIO.output(pinOut, GPIO.HIGH)
+    print('Bottle is 1 L.')
 
-time.sleep(10)
-
+  time.sleep(10)
