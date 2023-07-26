@@ -40,7 +40,7 @@ while True:
   if ret:
 
       # Resize the image to 64x64
-      full_image = cv2.resize(frame, interpolation=cv2.INTER_CUBIC)
+      full_image = cv2.resize(frame, dsize=(480, 480), interpolation=cv2.INTER_CUBIC)
       rescaled_image = cv2.resize(frame, dsize=(64, 64), interpolation=cv2.INTER_CUBIC)
 
       # Convert the image to an array
