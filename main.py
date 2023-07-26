@@ -50,7 +50,7 @@ while True:
       cv2.imshow("Image", rescaled_image)
 
       # Save the image
-      save_directory = "/home/pi/github"
+      save_directory = "/home/pi/github/water-bottle-classifier/"
       cv2.imwrite(os.path.join(save_directory, "image.jpg"), rescaled_image)
       cv2.imwrite(os.path.join(save_directory, "image_full.jpg"), full_image)
 
@@ -60,7 +60,7 @@ while True:
   # Release the VideoCapture object
   cap.release()
   
-  model = tf.keras.models.load_model("/home/pi/github/self_train.h5")
+  model = tf.keras.models.load_model("/home/pi/github/water-bottle-classifier/self_train.h5")
   prediction_label = output_converter(model.predict(image_array.reshape(1, 64, 64, 3)))
   
   if prediction_label = '0.5 L':
